@@ -289,6 +289,7 @@ declare global {
   const useWebSocket: typeof import('@vueuse/core')['useWebSocket']
   const useWebWorker: typeof import('@vueuse/core')['useWebWorker']
   const useWebWorkerFn: typeof import('@vueuse/core')['useWebWorkerFn']
+  const useWeiboStore: typeof import('./stores/weibo')['useWeiboStore']
   const useWindowFocus: typeof import('@vueuse/core')['useWindowFocus']
   const useWindowScroll: typeof import('@vueuse/core')['useWindowScroll']
   const useWindowSize: typeof import('@vueuse/core')['useWindowSize']
@@ -314,6 +315,9 @@ declare global {
   // @ts-ignore
   export type { Component, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from 'vue'
   import('vue')
+  // @ts-ignore
+  export type { WeiboUser, MblogPic, Mblog, WeiboCard, WeiboHomeData, WeiboData } from './stores/weibo'
+  import('./stores/weibo')
 }
 
 // for vue template auto import
@@ -601,6 +605,7 @@ declare module 'vue' {
     readonly useWebSocket: UnwrapRef<typeof import('@vueuse/core')['useWebSocket']>
     readonly useWebWorker: UnwrapRef<typeof import('@vueuse/core')['useWebWorker']>
     readonly useWebWorkerFn: UnwrapRef<typeof import('@vueuse/core')['useWebWorkerFn']>
+    readonly useWeiboStore: UnwrapRef<typeof import('./stores/weibo')['useWeiboStore']>
     readonly useWindowFocus: UnwrapRef<typeof import('@vueuse/core')['useWindowFocus']>
     readonly useWindowScroll: UnwrapRef<typeof import('@vueuse/core')['useWindowScroll']>
     readonly useWindowSize: UnwrapRef<typeof import('@vueuse/core')['useWindowSize']>

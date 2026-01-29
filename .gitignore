@@ -1,4 +1,5 @@
 .DS_Store
+.claude
 .vite-ssg-dist
 .vite-ssg-temp
 *.local
