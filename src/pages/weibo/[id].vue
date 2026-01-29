@@ -85,7 +85,7 @@ async function fetchBloggerData() {
 // 从 API 获取博主信息
 async function fetchBloggerDataFromAPI() {
   try {
-    // 尝试从真实 API 获取数据
+    // 从 API 获取数据
     const data = await fetchBloggerInfo(bloggerId.value)
 
     if (data.ok === 1 && data.data?.userInfo) {
@@ -94,44 +94,15 @@ async function fetchBloggerDataFromAPI() {
       weiboStore.switchBlogger(bloggerId.value)
     }
     else {
-      // 如果 API 返回失败，使用模拟数据
-      console.warn('API 返回失败，使用模拟数据')
-      useMockBloggerData()
+      // API 返回失败
+      error.value = 'API 返回失败，请稍后重试'
+      console.error('API 返回失败:', data)
     }
   }
   catch (err) {
     console.error('获取博主信息失败:', err)
-    // 如果请求失败，使用模拟数据
-    useMockBloggerData()
+    error.value = '获取博主信息失败，请检查网络连接'
   }
-}
-
-// 使用模拟数据（后备方案）
-function useMockBloggerData() {
-  const mockData: WeiboData = {
-    ok: 1,
-    data: {
-      userInfo: {
-        id: bloggerId.value,
-        screen_name: 'Gniqueh',
-        profile_image_url: 'https://tvax2.sinaimg.cn/crop.0.0.960.960.180/006BCCEUly8i877h28s92j30qo0qodi8.jpg',
-        avatar_hd: 'https://wx2.sinaimg.cn/orj480/006BCCEUly8i877h28s92j30qo0qodi8.jpg',
-        description: '天天开心才会越来越漂亮 好运自然就会发生在我身上',
-        follow_count: 538,
-        followers_count: '693',
-        statuses_count: 2051,
-        verified: false,
-        verified_type: -1,
-        gender: 'f',
-        mbrank: 7,
-        cover_image_phone: 'https://wx2.sinaimg.cn/crop.0.0.640.640.640/006BCCEUgy1i8b0j74vwyj3140140jxn.jpg',
-      },
-    },
-  }
-
-  bloggerData.value = mockData
-  weiboStore.saveBloggerData(bloggerId.value, mockData.data.userInfo)
-  weiboStore.switchBlogger(bloggerId.value)
 }
 
 // 获取微博列表
@@ -146,7 +117,7 @@ async function fetchWeiboList(append = false) {
   }
 
   try {
-    // 尝试从真实 API 获取数据
+    // 从 API 获取数据
     const data: WeiboHomeData = await fetchBloggerWeibos(bloggerId.value, currentPage.value)
 
     if (data.ok === 1 && data.data?.cards) {
@@ -169,20 +140,13 @@ async function fetchWeiboList(append = false) {
       }
     }
     else {
-      // 如果 API 返回失败，使用模拟数据
-      console.warn('微博列表 API 返回失败，使用模拟数据')
-      if (!append) {
-        useMockWeiboData()
-      }
+      // API 返回失败
+      console.error('微博列表 API 返回失败:', data)
       hasMore.value = false
     }
   }
   catch (err) {
     console.error('加载微博列表失败:', err)
-    // 如果请求失败，使用模拟数据
-    if (!append) {
-      useMockWeiboData()
-    }
     hasMore.value = false
   }
   finally {
@@ -198,111 +162,6 @@ async function loadMoreWeibos() {
 
   currentPage.value += 1
   await fetchWeiboList(true)
-}
-
-// 使用模拟微博数据（后备方案）
-function useMockWeiboData() {
-  if (!bloggerData.value)
-    return
-
-  const mockWeibos: WeiboCard[] = [
-    {
-      card_type: 9,
-      itemid: '1',
-      scheme: '',
-      mblog: {
-        id: '5259817843425929',
-        mid: '5259817843425929',
-        created_at: 'Tue Jan 27 21:49:19 +0800 2026',
-        text: '做了11个牛肉饼 能吃到过年了',
-        source: 'iPhone 16',
-        user: bloggerData.value.data.userInfo,
-        reposts_count: 0,
-        comments_count: 0,
-        attitudes_count: 2,
-        pic_ids: ['006BCCEUgy1i9pmu5o9zyj33b04eoe85'],
-        thumbnail_pic: 'https://wx3.sinaimg.cn/thumbnail/006BCCEUgy1i9pmu5o9zyj33b04eoe85.jpg',
-        original_pic: 'https://wx3.sinaimg.cn/large/006BCCEUgy1i9pmu5o9zyj33b04eoe85.jpg',
-        pics: [{
-          pid: '006BCCEUgy1i9pmu5o9zyj33b04eoe85',
-          url: 'https://wx3.sinaimg.cn/orj360/006BCCEUgy1i9pmu5o9zyj33b04eoe85.jpg',
-          size: 'orj360',
-          geo: { width: 360, height: 479, croped: false },
-          large: {
-            size: 'large',
-            url: 'https://wx3.sinaimg.cn/mw2000/006BCCEUgy1i9pmu5o9zyj33b04eoe85.jpg',
-            geo: { width: 2048, height: 2730, croped: false },
-          },
-        }],
-        isLongText: false,
-        region_name: '发布于 重庆',
-        bid: 'Qp68oeneV',
-      },
-    },
-    {
-      card_type: 9,
-      itemid: '2',
-      scheme: '',
-      mblog: {
-        id: '5259476781499535',
-        mid: '5259476781499535',
-        created_at: 'Mon Jan 26 23:14:04 +0800 2026',
-        text: '当我急需安卓充电器的时候…发现家里只有iPhone lighting和typec <br />超气人哦',
-        source: 'iPhone 16',
-        user: bloggerData.value.data.userInfo,
-        reposts_count: 0,
-        comments_count: 0,
-        attitudes_count: 1,
-        isLongText: false,
-        region_name: '发布于 重庆',
-        bid: 'QoXgi6i63',
-      },
-    },
-    {
-      card_type: 9,
-      itemid: '3',
-      scheme: '',
-      mblog: {
-        id: '5259088843770718',
-        mid: '5259088843770718',
-        created_at: 'Sun Jan 25 21:32:32 +0800 2026',
-        text: '无趣 已经不知道在微博发些啥了<br />打工的生活在购物-吃美食-拆快递-追剧-学习-运动-刷手机这几项循环<br />好想去旅游呀～',
-        source: 'iPhone 16',
-        user: bloggerData.value.data.userInfo,
-        reposts_count: 0,
-        comments_count: 1,
-        attitudes_count: 7,
-        pic_ids: ['006BCCEUgy1i9nazenqg1j33b04eohdw', '006BCCEUgy1i9nazg17qkj32c1341b2a', '006BCCEUgy1i9nazxzjqbj34eo3b01l5'],
-        thumbnail_pic: 'https://wx4.sinaimg.cn/thumbnail/006BCCEUgy1i9nazenqg1j33b04eohdw.jpg',
-        pics: [
-          {
-            pid: '006BCCEUgy1i9nazenqg1j33b04eohdw',
-            url: 'https://wx4.sinaimg.cn/orj360/006BCCEUgy1i9nazenqg1j33b04eohdw.jpg',
-            size: 'orj360',
-            geo: { width: 360, height: 479, croped: false },
-          },
-          {
-            pid: '006BCCEUgy1i9nazg17qkj32c1341b2a',
-            url: 'https://wx1.sinaimg.cn/orj360/006BCCEUgy1i9nazg17qkj32c1341b2a.jpg',
-            size: 'orj360',
-            geo: { width: 360, height: 479, croped: false },
-          },
-          {
-            pid: '006BCCEUgy1i9nazxzjqbj34eo3b01l5',
-            url: 'https://wx4.sinaimg.cn/orj360/006BCCEUgy1i9nazxzjqbj34eo3b01l5.jpg',
-            size: 'orj360',
-            geo: { width: 360, height: 270, croped: false },
-          },
-        ],
-        isLongText: false,
-        region_name: '发布于 重庆',
-        bid: 'QoNaAfOW2',
-      },
-    },
-  ]
-
-  weiboCards.value = mockWeibos
-  weiboStore.saveBloggerWeibos(bloggerId.value, mockWeibos)
 }
 
 // 切换到其他博主

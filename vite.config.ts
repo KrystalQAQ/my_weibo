@@ -25,6 +25,22 @@ export default defineConfig({
     },
   },
 
+  server: {
+    proxy: {
+      // 代理微博 API 请求
+      '/api': {
+        target: 'http://192.168.1.125:9880',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/api/, '/api'),
+      },
+      // 代理图片请求
+      '/image': {
+        target: 'http://192.168.1.125:9880',
+        changeOrigin: true,
+      },
+    },
+  },
+
   plugins: [
     // https://github.com/posva/unplugin-vue-router
     VueRouter({
