@@ -120,9 +120,13 @@ async function fetchWeiboList(append = false) {
     // 从 API 获取数据
     const data: WeiboHomeData = await fetchBloggerWeibos(bloggerId.value, currentPage.value)
 
+    console.log(`加载第 ${currentPage.value} 页，返回数据:`, data)
+
     if (data.ok === 1 && data.data?.cards) {
       // 过滤出包含 mblog 的卡片
       const validCards = data.data.cards.filter(card => card.mblog)
+
+      console.log(`第 ${currentPage.value} 页有效卡片数:`, validCards.length)
 
       if (append) {
         // 追加模式：添加到现有列表
@@ -135,8 +139,10 @@ async function fetchWeiboList(append = false) {
       }
 
       // 检查是否还有更多数据
-      if (validCards.length === 0 || validCards.length < 10) {
+      // 只有当返回的卡片数量为 0 时才认为没有更多数据
+      if (validCards.length === 0) {
         hasMore.value = false
+        console.log('没有更多数据了')
       }
     }
     else {
@@ -184,35 +190,88 @@ function closeImage() {
   selectedImage.value = null
 }
 
+// 瀑布流列数
+const columnCount = ref(3)
+const masonryColumns = computed(() => {
+  const columns: WeiboCard[][] = Array.from({ length: columnCount.value }, () => [])
+  const columnHeights: number[] = Array.from({ length: columnCount.value }, () => 0)
+
+  weiboCards.value.forEach((card) => {
+    // 找到高度最小的列
+    const minHeight = Math.min(...columnHeights)
+    const minIndex = columnHeights.indexOf(minHeight)
+
+    // 将卡片添加到最短的列
+    columns[minIndex].push(card)
+
+    // 估算卡片高度（图片 + 内容）
+    const imageHeight = card.mblog.pics && card.mblog.pics.length > 0 ? 300 : 0
+    const textHeight = card.mblog.text ? 150 : 100
+    columnHeights[minIndex] += imageHeight + textHeight
+  })
+
+  return columns
+})
+
+// 响应式更新列数
+function updateColumnCount() {
+  const width = window.innerWidth
+  if (width < 768) {
+    columnCount.value = 1
+  }
+  else if (width < 1024) {
+    columnCount.value = 2
+  }
+  else {
+    columnCount.value = 3
+  }
+}
+
 // 无限滚动加载
 const loadMoreTrigger = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
 
 function setupInfiniteScroll() {
+  // 清理旧的 observer
+  if (observer) {
+    observer.disconnect()
+    observer = null
+  }
+
   if (!loadMoreTrigger.value)
     return
 
-  const observer = new IntersectionObserver(
+  observer = new IntersectionObserver(
     (entries) => {
       const entry = entries[0]
       if (entry.isIntersecting && hasMore.value && !loadingMore.value) {
+        console.log('触发加载更多，当前页:', currentPage.value)
         loadMoreWeibos()
       }
     },
     {
-      rootMargin: '100px', // 提前100px开始加载
+      rootMargin: '200px', // 提前200px开始加载
+      threshold: 0.1,
     },
   )
 
   observer.observe(loadMoreTrigger.value)
-
-  // 清理函数
-  onUnmounted(() => {
-    observer.disconnect()
-  })
 }
+
+// 清理函数
+onUnmounted(() => {
+  if (observer) {
+    observer.disconnect()
+    observer = null
+  }
+})
 
 // 页面加载时获取数据
 onMounted(async () => {
+  // 初始化列数
+  updateColumnCount()
+  window.addEventListener('resize', updateColumnCount)
+
   await fetchBloggerData()
   await fetchWeiboList()
   // 等待 DOM 更新后设置无限滚动
@@ -234,6 +293,11 @@ watch(() => route.params.id, async () => {
       setupInfiniteScroll()
     })
   }
+})
+
+// 清理
+onUnmounted(() => {
+  window.removeEventListener('resize', updateColumnCount)
 })
 
 useHead({
@@ -352,13 +416,13 @@ useHead({
               <h1 text-4xl font-800 style="font-family: var(--font-heading)">
                 {{ bloggerData.data.userInfo.screen_name }}
               </h1>
-              <span
+              <!-- <span
                 v-if="bloggerData.data.userInfo.mbrank > 0"
                 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full text-sm font-700 shadow-lg
               >
                 <div i-carbon-star-filled />
                 会员{{ bloggerData.data.userInfo.mbrank }}
-              </span>
+              </span> -->
             </div>
 
             <p v-if="bloggerData.data.userInfo.description" text-base text-gray-700 dark:text-gray-300 mb-6 leading-relaxed max-w-2xl style="font-family: var(--font-body)">
@@ -418,14 +482,22 @@ useHead({
 
           <!-- Grid Layout -->
           <div v-else>
-            <div grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6>
+            <div flex gap-6>
+              <!-- 每一列 -->
               <div
-                v-for="card in weiboCards"
-                :key="card.mblog.id"
-                bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-800 transition-all duration-300 hover:shadow-xl hover:scale-102
+                v-for="(column, columnIndex) in masonryColumns"
+                :key="columnIndex"
+                flex-1 flex flex-col gap-6
               >
+                <!-- 列中的卡片 -->
+                <div
+                  v-for="card in column"
+                  :key="card.mblog.id"
+                  bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-800 transition-all duration-300 hover:shadow-xl hover:scale-102
+                >
                 <!-- Images -->
                 <div v-if="card.mblog.pics && card.mblog.pics.length > 0" relative>
+                  <!-- Single Image: Full width -->
                   <div
                     v-if="card.mblog.pics.length === 1"
                     aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800 cursor-pointer
@@ -438,12 +510,51 @@ useHead({
                       w-full h-full object-cover hover:scale-105 transition-transform duration-300
                     >
                   </div>
+                  <!-- Two Images: 2 columns, equal size -->
+                  <div
+                    v-else-if="card.mblog.pics.length === 2"
+                    grid grid-cols-2 gap-1
+                  >
+                    <div
+                      v-for="pic in card.mblog.pics"
+                      :key="pic.pid"
+                      aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800 cursor-pointer
+                      style="cursor: pointer"
+                      @click="openImage(proxyImageUrl(pic.large?.url || pic.url))"
+                    >
+                      <img
+                        :src="proxyImageUrl(pic.url)"
+                        :alt="pic.pid"
+                        w-full h-full object-cover hover:scale-105 transition-transform duration-300
+                      >
+                    </div>
+                  </div>
+                  <!-- Three Images: 3 columns, equal size -->
+                  <div
+                    v-else-if="card.mblog.pics.length === 3"
+                    grid grid-cols-3 gap-1
+                  >
+                    <div
+                      v-for="pic in card.mblog.pics"
+                      :key="pic.pid"
+                      aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800 cursor-pointer
+                      style="cursor: pointer"
+                      @click="openImage(proxyImageUrl(pic.large?.url || pic.url))"
+                    >
+                      <img
+                        :src="proxyImageUrl(pic.url)"
+                        :alt="pic.pid"
+                        w-full h-full object-cover hover:scale-105 transition-transform duration-300
+                      >
+                    </div>
+                  </div>
+                  <!-- Four or More Images: Standard grid -->
                   <div
                     v-else
                     grid gap-1
                     :class="{
-                      'grid-cols-2': card.mblog.pics.length === 2 || card.mblog.pics.length === 4,
-                      'grid-cols-3': card.mblog.pics.length >= 3 && card.mblog.pics.length !== 4,
+                      'grid-cols-2': card.mblog.pics.length === 4,
+                      'grid-cols-3': card.mblog.pics.length >= 5,
                     }"
                   >
                     <div
@@ -465,7 +576,15 @@ useHead({
                 <!-- Content -->
                 <div p-5>
                   <!-- Text -->
-                  <div text-sm leading-relaxed mb-4 text-gray-800 dark:text-gray-200 line-clamp-3 style="font-family: var(--font-body)" v-html="card.mblog.text" />
+                  <div
+                    class="weibo-text"
+                    text-left leading-relaxed mb-4 text-gray-800 dark:text-gray-200 style="font-family: var(--font-body)"
+                    :class="{
+                      'text-base': !card.mblog.pics || card.mblog.pics.length === 0,
+                      'text-sm': card.mblog.pics && card.mblog.pics.length > 0
+                    }"
+                    v-html="card.mblog.text"
+                  />
 
                   <!-- Meta -->
                   <div flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-4>
@@ -491,8 +610,9 @@ useHead({
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Infinite Scroll Trigger -->
+            <!-- Infinite Scroll Trigger - 放在瀑布流容器外部 -->
             <div v-if="hasMore" ref="loadMoreTrigger" flex justify-center py-8>
               <div flex items-center gap-2 text-gray-500 dark:text-gray-400>
                 <div i-carbon-circle-dash animate-spin text-lg />
@@ -534,6 +654,26 @@ useHead({
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 强制微博文字左对齐，覆盖 API 返回的居中样式 */
+:deep(.weibo-text *) {
+  text-align: left !important;
+}
+
+/* 防止链接和图标换行 */
+:deep(.weibo-text a) {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+:deep(.weibo-text .url-icon) {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+</style>
 
 <route lang="yaml">
 meta:

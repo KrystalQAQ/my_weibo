@@ -102,7 +102,7 @@ useHead({
           <input
             v-model="newBloggerId"
             type="text"
-            placeholder="请输入博主ID（例如：6052726496）"
+            placeholder="请输入博主ID"
             aria-label="博主ID输入框"
             bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700
             rounded-xl px-5 py-4 text-base
@@ -137,12 +137,12 @@ useHead({
           <span style="font-family: var(--font-body)">{{ errorMessage }}</span>
         </div>
 
-        <div mt-6 p-4 bg-blue-50 dark:bg-blue-950 rounded-xl flex items-start gap-3 border border-blue-100 dark:border-blue-900>
+        <!-- <div mt-6 p-4 bg-blue-50 dark:bg-blue-950 rounded-xl flex items-start gap-3 border border-blue-100 dark:border-blue-900>
           <div i-carbon-information text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0 text-lg />
           <p text-sm text-blue-800 dark:text-blue-300 style="font-family: var(--font-body)">
             提示：可以从微博用户主页URL中获取博主ID，例如 weibo.com/u/<strong>6052726496</strong>
           </p>
-        </div>
+        </div> -->
       </div>
 
       <!-- Bloggers List -->
