@@ -2,24 +2,25 @@
 
 ## 核心要点
 
-### 1. Cookie 是关键 ✅
+### 1. Cookie 是固定的（写死在配置中）✅
 
-Nginx 配置中已添加 Cookie 处理：
+Nginx 配置中已设置固定 Cookie：
 
 ```nginx
-# 传递客户端 Cookie 到微博 API
-proxy_set_header Cookie $http_cookie;
+location /api/ {
+    # 关键：固定的 Cookie（写死）
+    proxy_set_header Cookie "SUB=_2AkMeJjMff8NxqwFRmvEVyW_kboR0zAHEieKoesLEJRM3HRl-yT9yqlRctRB6NaYd8RDrUEht8KeU5v4q9h7AA8M5HUko";
 
-# 传递微博 API 的 Set-Cookie 到客户端
-proxy_pass_header Set-Cookie;
-
-# 处理 Cookie 域名和路径
-proxy_cookie_domain m.weibo.cn $host;
-proxy_cookie_path /api/ /api/;
-
-# 允许跨域携带凭证
-add_header Access-Control-Allow-Credentials "true" always;
+    # 代理到微博 API
+    proxy_pass https://m.weibo.cn/api/;
+}
 ```
+
+**优势：**
+- ✅ 简单直接
+- ✅ 无需客户端传递 Cookie
+- ✅ 统一管理
+- ✅ 易于更新
 
 ### 2. 使用 docker run 命令 ✅
 
@@ -36,11 +37,11 @@ mkdir -p logs/nginx
 # 2. 启动容器（映射配置和日志）
 docker run -d \
   --name my-vitesse-app \
-  -p 80:80 \
+  -p 9880:80 \
   -v $(pwd)/nginx-full.conf:/etc/nginx/conf.d/default.conf:ro \
   -v $(pwd)/logs/nginx:/var/log/nginx \
   --restart unless-stopped \
-  ghcr.io/<username>/<repo>:latest
+  ghcr.io/krystalqaq/my_weibo:latest
 
 # 3. 验证运行
 docker ps
@@ -146,45 +147,50 @@ docker run -d \
 
 ## Cookie 配置详解
 
-### 为什么 Cookie 是关键？
+### 为什么 Cookie 是固定的？
 
-微博 API 需要 Cookie 来：
-1. 验证用户身份
-2. 维持会话状态
-3. 防止爬虫和滥用
-
-### Nginx 如何处理 Cookie？
+Cookie 写死在 Nginx 配置中，所有请求使用同一个认证凭证：
 
 ```nginx
-location /api/ {
-    # 1. 接收客户端的 Cookie
-    proxy_set_header Cookie $http_cookie;
-
-    # 2. 传递给微博 API
-    proxy_pass https://m.weibo.cn/api/;
-
-    # 3. 接收微博 API 的 Set-Cookie
-    proxy_pass_header Set-Cookie;
-
-    # 4. 修改 Cookie 域名（m.weibo.cn → 你的域名）
-    proxy_cookie_domain m.weibo.cn $host;
-
-    # 5. 返回给客户端
-    add_header Access-Control-Allow-Credentials "true" always;
-}
+proxy_set_header Cookie "SUB=_2AkMeJjMff8NxqwFRmvEVyW_kboR0z...";
 ```
 
-### 测试 Cookie
+### 工作原理
+
+```
+客户端请求 /api/...
+         ↓
+    Nginx 接收
+         ↓
+添加固定 Cookie
+         ↓
+代理到微博 API
+         ↓
+返回数据
+```
+
+### 修改 Cookie
 
 ```bash
-# 带 Cookie 请求
-curl -v \
-  -H "Cookie: SUB=xxx; SUBP=xxx" \
-  http://localhost/api/container/getIndex?type=uid&value=6052726496
+# 1. 编辑配置
+vim nginx-full.conf
 
-# 查看响应头（包括 Set-Cookie）
-curl -I http://localhost/api/container/getIndex?...
+# 2. 找到这一行
+proxy_set_header Cookie "SUB=...";
+
+# 3. 替换为新的 Cookie
+proxy_set_header Cookie "SUB=新的Cookie值";
+
+# 4. 重载配置
+docker exec my-vitesse-app nginx -s reload
 ```
+
+### 获取新 Cookie
+
+1. 浏览器访问 `https://m.weibo.cn`
+2. 按 F12 打开开发者工具
+3. Network 标签查看请求头
+4. 复制 Cookie 值
 
 ## 目录结构
 
@@ -219,12 +225,12 @@ my-vitesse-app/
 
 ## 优势总结
 
-### ✅ Cookie 正确处理
+### ✅ Cookie 固定配置
 
-- 传递客户端 Cookie 到微博 API
-- 传递微博 API 的 Set-Cookie 到客户端
-- 自动处理 Cookie 域名和路径
-- 支持跨域携带凭证
+- Cookie 写死在 Nginx 配置中
+- 无需客户端传递 Cookie
+- 统一的认证凭证
+- 易于更新和维护
 
 ### ✅ 配置映射到宿主机
 
@@ -251,33 +257,23 @@ my-vitesse-app/
 **检查：**
 ```bash
 # 查看 Nginx 配置
-docker exec my-vitesse-app cat /etc/nginx/conf.d/default.conf | grep -A 5 "proxy_set_header Cookie"
-
-# 查看请求头
-docker exec my-vitesse-app tail -f /var/log/nginx/access.log
+docker exec my-vitesse-app cat /etc/nginx/conf.d/default.conf | grep -A 2 "proxy_set_header Cookie"
 ```
 
 **解决：**
 确保配置中有：
 ```nginx
-proxy_set_header Cookie $http_cookie;
-proxy_pass_header Set-Cookie;
+proxy_set_header Cookie "SUB=_2AkMeJjMff8NxqwFRmvEVyW_kboR0z...";
 ```
 
-### 问题 2: 跨域 Cookie 问题
+### 问题 2: API 返回 401/403
 
-**检查：**
-```bash
-# 查看响应头
-curl -I http://localhost/api/...
-```
+**原因：** Cookie 过期或无效
 
 **解决：**
-确保配置中有：
-```nginx
-add_header Access-Control-Allow-Credentials "true" always;
-add_header Access-Control-Allow-Headers "Content-Type, Authorization, Cookie" always;
-```
+1. 获取新的 Cookie（浏览器开发者工具）
+2. 更新 `nginx-full.conf`
+3. 重载配置：`docker exec my-vitesse-app nginx -s reload`
 
 ### 问题 3: 配置未生效
 
