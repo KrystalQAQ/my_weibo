@@ -88,20 +88,7 @@ useHead({
     <div max-w-4xl mx-auto>
       <!-- Header -->
       <div text-center mb-12>
-        <div flex justify-center mb-6>
-          <div
-            w-20 h-20 bg-gradient-to-br from-rose-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg
-            class="motion-safe:animate-[float_3s_ease-in-out_infinite]"
-          >
-            <div i-carbon-user-multiple text-4xl text-white />
-          </div>
-        </div>
-        <h1 text-5xl font-800 mb-4 bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent style="font-family: var(--font-heading)">
-          微博博主管理
-        </h1>
-        <p text-lg text-gray-600 dark:text-gray-400 style="font-family: var(--font-body)">
-          添加你喜欢的博主，快速查看他们的主页和最新动态
-        </p>
+ 
       </div>
 
       <!-- Add Blogger Card -->
