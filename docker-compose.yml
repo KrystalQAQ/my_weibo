@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  web:
+    image: ghcr.io/<your-username>/<your-repo>:latest
+    # 或使用本地构建
+    # build: .
+    container_name: my-vitesse-app
+    ports:
+      - "80:80"
+    volumes:
+      # 映射 Nginx 配置文件到宿主机
+      - ./nginx-full.conf:/etc/nginx/conf.d/default.conf:ro
+
+      # 映射 Nginx 日志到宿主机（可选）
+      - ./logs/nginx:/var/log/nginx
+
+      # 如果需要修改静态文件，也可以映射（开发环境）
+      # - ./dist:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # 资源限制（可选）
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 256M
+    #     reservations:
+    #       cpus: '0.25'
+    #       memory: 128M
+
+# 网络配置（可选）
+# networks:
+#   default:
+#     name: vitesse-network

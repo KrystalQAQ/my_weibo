@@ -45,7 +45,7 @@ export async function fetchBloggerInfo(bloggerId: number) {
 
   // 否则直接请求微博 API（可能会有跨域问题）
   const response = await fetch(
-    `https://m.weibo.cn/api/container/getIndex?type=uid&value=${bloggerId}&containerid=${containerId}`,
+    `/api/container/getIndex?type=uid&value=${bloggerId}&containerid=${containerId}`,
   )
   return await response.json()
 }
@@ -78,7 +78,7 @@ export async function fetchBloggerWeibos(bloggerId: number, page = 1) {
 
   // 否则直接请求微博 API（可能会有跨域问题）
   const response = await fetch(
-    `https://m.weibo.cn/api/container/getIndex?${params.toString()}`,
+    `/api/container/getIndex?${params.toString()}`,
   )
   return await response.json()
 }
