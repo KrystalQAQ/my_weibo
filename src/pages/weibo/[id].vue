@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Mblog, WeiboCard, WeiboData, WeiboHomeData } from '~/stores/weibo'
-import { fetchBloggerInfo, fetchBloggerWeibos, proxyImageUrl } from '~/utils/proxy'
+import { fetchBloggerInfo, fetchBloggerWeibos, fetchWeiboDetail, proxyImageUrl } from '~/utils/proxy'
+import WeiboDetailModal from '~/components/WeiboDetailModal.vue'
 
 defineOptions({
   name: 'WeiboBloggerProfile',
@@ -20,6 +21,11 @@ const weiboCards = ref<WeiboCard[]>([])
 const selectedImage = ref<string | null>(null)
 const currentPage = ref(1)
 const hasMore = ref(true)
+
+// 微博详情弹窗状态
+const showDetailModal = ref(false)
+const currentDetailData = ref<any>(null)
+const loadingDetail = ref(false)
 
 // 格式化时间
 function formatTime(dateStr: string): string {
@@ -188,6 +194,32 @@ function openImage(url: string) {
 // 关闭图片查看器
 function closeImage() {
   selectedImage.value = null
+}
+
+// 打开微博详情弹窗
+async function openWeiboDetail(weiboId: string) {
+  try {
+    loadingDetail.value = true
+    const data = await fetchWeiboDetail(weiboId)
+    currentDetailData.value = data
+    showDetailModal.value = true
+  }
+  catch (err) {
+    console.error('获取微博详情失败:', err)
+    // 可以添加错误提示
+  }
+  finally {
+    loadingDetail.value = false
+  }
+}
+
+// 关闭详情弹窗
+function closeDetailModal() {
+  showDetailModal.value = false
+  // 延迟清空数据，等待动画完成
+  setTimeout(() => {
+    currentDetailData.value = null
+  }, 300)
 }
 
 // 瀑布流列数
@@ -493,7 +525,8 @@ useHead({
                 <div
                   v-for="card in column"
                   :key="card.mblog.id"
-                  bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-800 transition-all duration-300 hover:shadow-xl hover:scale-102
+                  bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-800 transition-all duration-300 hover:shadow-xl hover:scale-102 cursor-pointer
+                  @click="openWeiboDetail(card.mblog.id)"
                 >
                 <!-- Images -->
                 <div v-if="card.mblog.pics && card.mblog.pics.length > 0" relative>
@@ -502,7 +535,7 @@ useHead({
                     v-if="card.mblog.pics.length === 1"
                     aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800 cursor-pointer
                     style="cursor: pointer"
-                    @click="openImage(proxyImageUrl(card.mblog.pics[0].large?.url || card.mblog.pics[0].url))"
+                    @click.stop="openImage(proxyImageUrl(card.mblog.pics[0].large?.url || card.mblog.pics[0].url))"
                   >
                     <img
                       :src="proxyImageUrl(card.mblog.pics[0].url)"
@@ -520,7 +553,7 @@ useHead({
                       :key="pic.pid"
                       aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800 cursor-pointer
                       style="cursor: pointer"
-                      @click="openImage(proxyImageUrl(pic.large?.url || pic.url))"
+                      @click.stop="openImage(proxyImageUrl(pic.large?.url || pic.url))"
                     >
                       <img
                         :src="proxyImageUrl(pic.url)"
@@ -539,7 +572,7 @@ useHead({
                       :key="pic.pid"
                       aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800 cursor-pointer
                       style="cursor: pointer"
-                      @click="openImage(proxyImageUrl(pic.large?.url || pic.url))"
+                      @click.stop="openImage(proxyImageUrl(pic.large?.url || pic.url))"
                     >
                       <img
                         :src="proxyImageUrl(pic.url)"
@@ -562,7 +595,7 @@ useHead({
                       :key="pic.pid"
                       aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800 cursor-pointer
                       style="cursor: pointer"
-                      @click="openImage(proxyImageUrl(pic.large?.url || pic.url))"
+                      @click.stop="openImage(proxyImageUrl(pic.large?.url || pic.url))"
                     >
                       <img
                         :src="proxyImageUrl(pic.url)"
@@ -652,6 +685,13 @@ useHead({
         @click.stop
       >
     </div>
+
+    <!-- Weibo Detail Modal -->
+    <WeiboDetailModal
+      v-model:show="showDetailModal"
+      :detail-data="currentDetailData"
+      @close="closeDetailModal"
+    />
   </div>
 </template>
 

@@ -84,6 +84,27 @@ export async function fetchBloggerWeibos(bloggerId: number, page = 1) {
 }
 
 /**
+ * 获取微博详情
+ * @param weiboId 微博 ID
+ * @returns 微博详情数据
+ */
+export async function fetchWeiboDetail(weiboId: string) {
+  // 如果配置了 Worker，使用代理
+  if (WORKER_URL) {
+    const response = await fetch(
+      `${WORKER_URL}/detail/${weiboId}`,
+    )
+    return await response.json()
+  }
+
+  // 否则直接请求微博 API（可能会有跨域问题）
+  const response = await fetch(
+    `/detail/${weiboId}`,
+  )
+  return await response.json()
+}
+
+/**
  * 检查是否配置了代理
  * @returns 是否配置了 Worker URL
  */

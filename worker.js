@@ -15,6 +15,27 @@ function addCorsHeaders(response) {
   return headers
 }
 
+// 从详情页 HTML 中提取 $render_data
+function extractRenderData(html) {
+  // 典型格式：var $render_data = [ ... ][0] || {};
+  const patterns = [
+    /\$render_data\s*=\s*(\[[\s\S]*?\])\s*\[0\]\s*\|\|/m,
+    /\$render_data\s*=\s*(\[[\s\S]*?\])\s*;/m
+  ]
+
+  for (const reg of patterns) {
+    const match = html.match(reg)
+    if (match) {
+      try {
+        return JSON.parse(match[1])
+      } catch (e) {
+        console.error('parse render_data failed', e)
+      }
+    }
+  }
+  return null
+}
+
 // 处理 OPTIONS 预检请求
 function handleOptions() {
   return new Response(null, {
@@ -33,21 +54,35 @@ async function handleApiProxy(request, url) {
   try {
     // 构建微博 API URL
     const weiboApiUrl = `https://m.weibo.cn${url.pathname}${url.search}`
-
+    console.log(weiboApiUrl, 'weiboApiUrl')
     // 发起请求到微博 API
     const response = await fetch(weiboApiUrl, {
       method: request.method,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': 'https://m.weibo.cn/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
+        'pragma': 'no-cache',
+        'cache-control': 'no-cache',
+        'sec-ch-ua-platform': '"Windows"',
+        'x-xsrf-token': '4b703d',
+        'sec-ch-ua': '"Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"',
+        'sec-ch-ua-mobile': '?0',
+        'mweibo-pwa': '1',
+        'x-requested-with': 'XMLHttpRequest',
+        'sec-fetch-site': 'same-origin',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-dest': 'empty',
+        'referer': 'https://m.weibo.cn/u/6052726496?jumpfrom=weibocom',
+        'accept-language': 'zh-CN,zh;q=0.9',
+        'priority': 'u=1, i',
+        'Cookie': 'WEIBOCN_FROM=1110005030; SUB=_2AkMeJjMff8NxqwFRmvEVyW_kboR0zAHEieKoesLEJRM3HRl-yT9yqlRctRB6NaYd8RDrUEht8KeU5v4q9h7AA8M5HUko; SUBP=0033WrSXqPxfM72-Ws9jqgMF55529P9D9WF-8waChUmp637RZ0.wSN6A; MLOGIN=0; _T_WM=46088391386; XSRF-TOKEN=4b703d; mweibo_short_token=52532e487b; M_WEIBOCN_PARAMS=luicode%3D10000011%26lfid%3D1076036052726496%26fid%3D1005056052726496%26uicode%3D10000011'
       }
     })
 
     // 获取响应数据
     const data = await response.text()
-
+    console.log(data, 'data')
     // 返回带 CORS 头的响应
     return new Response(data, {
       status: response.status,
@@ -56,6 +91,65 @@ async function handleApiProxy(request, url) {
   } catch (error) {
     return new Response(JSON.stringify({
       error: 'API proxy failed',
+      message: error.message
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    })
+  }
+}
+
+// 处理微博详情页 HTML 反代
+async function handleDetailProxy(request, url) {
+  try {
+    const detailUrl = `https://m.weibo.cn${url.pathname}${url.search}`
+    console.log(detailUrl, 'detailUrl')
+
+    const response = await fetch(detailUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'Referer': 'https://m.weibo.cn/',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Cookie': 'WEIBOCN_FROM=1110005030; SUB=_2AkMeJjMff8NxqwFRmvEVyW_kboR0zAHEieKoesLEJRM3HRl-yT9yqlRctRB6NaYd8RDrUEht8KeU5v4q9h7AA8M5HUko; SUBP=0033WrSXqPxfM72-Ws9jqgMF55529P9D9WF-8waChUmp637RZ0.wSN6A; MLOGIN=0; _T_WM=46088391386; XSRF-TOKEN=4b703d; mweibo_short_token=52532e487b; M_WEIBOCN_PARAMS=luicode%3D10000011%26lfid%3D1076036052726496%26fid%3D1005056052726496%26uicode%3D10000011'
+      }
+    })
+
+    const body = await response.text()
+    const renderData = extractRenderData(body)
+    console.log(renderData, 'renderDat/detail/5253126978280561')
+
+    if (renderData) {
+      return new Response(JSON.stringify({
+        render_data: renderData,
+        detail_id: url.pathname.split('/').pop()
+      }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      })
+    }
+    return new Response(JSON.stringify({
+      error: 'render_data not found in page'
+    }), {
+      status: 502,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    })
+  } catch (error) {
+    return new Response(JSON.stringify({
+      error: 'Detail proxy failed',
       message: error.message
     }), {
       status: 500,
@@ -168,6 +262,9 @@ async function handleRequest(request) {
   if (url.pathname.startsWith('/api/')) {
     // API 反代：/api/container/getIndex?...
     return handleApiProxy(request, url)
+  } else if (url.pathname.startsWith('/detail/')) {
+    // 详情页 HTML 反代：/detail/5253126978280561
+    return handleDetailProxy(request, url)
   } else if (url.pathname === '/image' || url.pathname === '/img') {
     // 图片代理：/image?url=https://...
     return handleImageProxy(url)
@@ -181,6 +278,11 @@ async function handleRequest(request) {
           path: '/api/*',
           description: 'Proxy for Weibo API',
           example: '/api/container/getIndex?type=uid&value=6052726496&containerid=1005056052726496'
+        },
+        detail: {
+          path: '/detail/<weibo_id>',
+          description: 'Proxy for Weibo detail HTML page; append ?format=json to get parsed render_data',
+          example: '/detail/5253126978280561?format=json'
         },
         image: {
           path: '/image?url=<image_url>',

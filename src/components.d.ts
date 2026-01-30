@@ -14,5 +14,8 @@ declare module 'vue' {
     TheCounter: typeof import('./components/TheCounter.vue')['default']
     TheFooter: typeof import('./components/TheFooter.vue')['default']
     TheInput: typeof import('./components/TheInput.vue')['default']
+    WeiboDetailModal: typeof import('./components/WeiboDetailModal.vue')['default']
+    'WeiboDetailModal.example': typeof import('./components/WeiboDetailModal.example.vue')['default']
+    'WeiboDetailModal.README': typeof import('./components/WeiboDetailModal.README.md')['default']
   }
 }
