@@ -4,7 +4,7 @@
  */
 
 // 获取 Worker URL（从环境变量）
-const WORKER_URL = import.meta.env.VITE_WORKER_URL || ''
+const WORKER_URL = (import.meta.env.VITE_WORKER_URL || '').replace(/\/$/, '')
 
 /**
  * 代理图片 URL，绕过防盗链
@@ -15,13 +15,23 @@ export function proxyImageUrl(url: string): string {
   if (!url)
     return ''
 
-  // 如果没有配置 Worker URL，直接返回原 URL
-  if (!WORKER_URL)
+  if (url.startsWith('/image?url=') || (WORKER_URL && url.startsWith(`${WORKER_URL}/image?url=`)))
     return url
 
-  // 如果是微博图片，使用代理
-  if (url.includes('sinaimg.cn') || url.includes('sina.cn') || url.includes('weibo.com')) {
-    return `${WORKER_URL}/image?url=${encodeURIComponent(url)}`
+  try {
+    const hostname = new URL(url).hostname
+    const isWeiboImage = [
+      'sinaimg.cn',
+      'sina.cn',
+      'weibo.com',
+      'weibocdn.com',
+    ].some(domain => hostname === domain || hostname.endsWith(`.${domain}`))
+
+    if (isWeiboImage)
+      return `${WORKER_URL}/image?url=${encodeURIComponent(url)}`
+  }
+  catch {
+    // Keep relative and malformed URLs unchanged.
   }
 
   return url
@@ -34,7 +44,6 @@ export function proxyImageUrl(url: string): string {
  */
 export async function fetchBloggerInfo(bloggerId: number) {
   const containerId = `100505${bloggerId}`
-  console.log(WORKER_URL,'WORKER_URL')
   // 如果配置了 Worker，使用代理
   if (WORKER_URL) {
     const response = await fetch(

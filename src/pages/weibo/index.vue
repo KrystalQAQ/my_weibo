@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { proxyImageUrl } from '~/utils/proxy'
+
 defineOptions({
   name: 'WeiboBloggers',
 })
@@ -135,7 +137,7 @@ useHead({
               <div w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-rose-400 to-pink-500 flex-shrink-0
                 shadow-lg ring-4 ring-white dark:ring-gray-800>
                 <img v-if="weiboStore.getBloggerData(id)?.profile_image_url"
-                  :src="weiboStore.getBloggerData(id)?.profile_image_url"
+                  :src="proxyImageUrl(weiboStore.getBloggerData(id)?.profile_image_url || '')"
                   :alt="weiboStore.getBloggerData(id)?.screen_name" w-full h-full object-cover>
                 <div v-else i-carbon-user-avatar text-4xl text-white flex items-center justify-center w-full h-full />
               </div>
