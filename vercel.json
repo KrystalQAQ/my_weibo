@@ -1,0 +1,24 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://wb.254253.xyz/api/:path*"
+    },
+    {
+      "source": "/detail/:path*",
+      "destination": "https://wb.254253.xyz/detail/:path*"
+    },
+    {
+      "source": "/image",
+      "destination": "https://wb.254253.xyz/image"
+    },
+    {
+      "source": "/((?!assets/|.*\\.[^/]+$).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
